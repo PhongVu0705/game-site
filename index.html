@@ -1,0 +1,2122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#111a20" />
+    <meta
+      name="description"
+      content="Play Ô Ăn Quan with two players on an interactive 2D or 3D board."
+    />
+    <title>Ô Ăn Quan · Pebble & Pit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap"
+      rel="stylesheet"
+    />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
+        }
+      }
+    </script>
+    <style>
+      :root {
+        font-family: "DM Sans", system-ui, sans-serif;
+        color: #eef0e7;
+        background: #111a20;
+        font-synthesis: none;
+        --cream: #f4e8d2;
+        --muted: #a5b2b1;
+        --line: rgba(232, 239, 228, 0.14);
+        --teal: #8cdbc8;
+        --gold: #e7bd75;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100svh;
+        background: radial-gradient(
+          circle at 50% 10%,
+          #25414a 0%,
+          #17262c 44%,
+          #10191e 100%
+        );
+      }
+      button {
+        font: inherit;
+      }
+      button:focus-visible {
+        outline: 2px solid var(--teal);
+        outline-offset: 3px;
+      }
+      .app {
+        width: min(1480px, 100%);
+        min-height: 100svh;
+        margin: auto;
+        padding: 24px clamp(16px, 2.8vw, 42px) 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        min-width: 0;
+      }
+      .brand-mark {
+        width: 43px;
+        height: 43px;
+        border: 1px solid rgba(231, 189, 117, 0.55);
+        border-radius: 13px;
+        display: grid;
+        place-items: center;
+        color: var(--gold);
+        font-family: Fraunces, serif;
+        font-size: 28px;
+        line-height: 1;
+        box-shadow: inset 0 0 0 3px rgba(231, 189, 117, 0.08);
+      }
+      .brand h1 {
+        font:
+          600 clamp(22px, 2.3vw, 31px)/1.1 Fraunces,
+          Georgia,
+          serif;
+        margin: 0;
+        white-space: nowrap;
+        letter-spacing: -0.025em;
+      }
+      .brand p {
+        margin: 4px 0 0;
+        color: #9badab;
+        font-size: 12px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      .top-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .btn {
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.055);
+        color: #e6e9df;
+        border-radius: 11px;
+        padding: 10px 14px;
+        cursor: pointer;
+        transition:
+          background 0.18s,
+          border-color 0.18s,
+          transform 0.18s;
+        white-space: nowrap;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .btn:hover {
+        background: rgba(255, 255, 255, 0.11);
+        border-color: rgba(232, 239, 228, 0.35);
+        transform: translateY(-1px);
+      }
+      .btn.active {
+        border-color: rgba(140, 219, 200, 0.48);
+        color: var(--teal);
+        background: rgba(140, 219, 200, 0.1);
+      }
+      .view-toggle {
+        display: flex;
+        gap: 3px;
+        padding: 3px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .view-toggle .btn {
+        border: 0;
+        padding: 7px 12px;
+      }
+      .short-label { display: none; }
+      .main {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 292px;
+        gap: 18px;
+        flex: 1;
+        min-height: 0;
+        align-items: start;
+      }
+      .game-column {
+        position: relative;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .board-panel {
+        position: relative;
+        min-height: 0;
+        height: clamp(280px, calc(100svh - 180px), 650px);
+        flex: none;
+        overflow: hidden;
+        border: 1px solid rgba(232, 239, 228, 0.13);
+        border-radius: 22px;
+        background: radial-gradient(
+          ellipse at 50% 52%,
+          #314a50 0%,
+          #22343a 48%,
+          #17262c 100%
+        );
+        box-shadow:
+          0 24px 80px rgba(0, 0, 0, 0.18),
+          inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      }
+      .board-panel:before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.035),
+          transparent 28%,
+          transparent 73%,
+          rgba(0, 0, 0, 0.12)
+        );
+        pointer-events: none;
+        z-index: 1;
+      }
+      #scene {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: none;
+      }
+      #scene[hidden],
+      .board-overlay[hidden],
+      .board-2d[hidden] {
+        display: none;
+      }
+      .board-2d {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 7px;
+        padding: 42px 18px 48px;
+      }
+      .bank-2d {
+        width: min(100%, 950px);
+        min-height: 27px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 3px 8px;
+        border: 1px solid #bc9163;
+        border-radius: 8px;
+        background: #513c2b;
+        color: #f5eddb;
+        font-size: 10px;
+        flex: none;
+      }
+      .bank-2d strong { white-space: nowrap; }
+      .bank-stones { display: flex; flex-wrap: wrap; align-content: center; gap: 2px; min-height: 12px; }
+      .bank-stone, .flying-stone {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #d4cfbd;
+        box-shadow: inset -2px -1px 2px #77746b;
+        flex: none;
+      }
+      .bank-stone.quan, .flying-stone.quan { width: 13px; height: 11px; background: #dfb565; box-shadow: inset -2px -1px 2px #86551d; }
+      .flying-stone { position: fixed; z-index: 20; pointer-events: none; }
+      .board-2d-grid {
+        display: grid;
+        grid-template-columns: minmax(28px, 0.62fr) repeat(5, minmax(0, 1fr)) minmax(28px, 0.62fr);
+        grid-template-rows: repeat(2, minmax(0, 1fr));
+        gap: clamp(3px, 0.65vw, 10px);
+        width: min(100%, 950px);
+        aspect-ratio: 2.8;
+        max-height: calc(100% - 66px);
+        padding: clamp(8px, 1.2vw, 18px);
+        border: 5px solid #a9784f;
+        border-radius: 28px;
+        background: linear-gradient(145deg, #b98656, #8c5b38);
+        box-shadow: 0 18px 42px #07121688, inset 0 2px 5px #f6d09b55;
+      }
+      .pit-2d {
+        min-width: 0;
+        min-height: 0;
+        border: 2px solid #c99968;
+        border-radius: 38%;
+        background: radial-gradient(ellipse, #674631, #442d22);
+        color: #f5eddb;
+        box-shadow: inset 0 4px 12px #1c100c99, 0 1px 2px #f3d2a650;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
+        padding: 3px;
+        cursor: pointer;
+      }
+      .pit-2d.quan { border-radius: 48%; }
+      .pit-2d small { font-size: clamp(8px, 0.75vw, 11px); line-height: 1; }
+      .pit-2d strong { font-size: clamp(15px, 2vw, 26px); line-height: 1.1; }
+      .pit-2d.available { border-color: var(--teal); box-shadow: inset 0 4px 12px #1c100c99, 0 0 0 2px #8cdbc855; }
+      .pit-2d.selected { background: #4b665b; border-color: #e7bd75; }
+      .pit-2d:disabled { cursor: default; }
+      .pit-2d:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+      .board-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 2;
+      }
+      .pit-count {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        min-width: 25px;
+        height: 25px;
+        padding: 0 6px;
+        border-radius: 50px;
+        background: rgba(17, 26, 32, 0.82);
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 700;
+        box-shadow: 0 2px 10px #0006;
+        pointer-events: none;
+      }
+      .pit-count.quan {
+        background: #8d5937;
+        color: #fff2d5;
+        border-color: #e8b979;
+      }
+      .bank-count {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        padding: 3px 7px;
+        border-radius: 6px;
+        background: #35291fdd;
+        border: 1px solid #b08354;
+        color: #f7e9d0;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .board-corner {
+        position: absolute;
+        z-index: 3;
+        top: 17px;
+        left: 19px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #c0d3ce;
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        font-weight: 700;
+        pointer-events: none;
+      }
+      .board-corner i {
+        display: block;
+        width: 7px;
+        height: 7px;
+        background: var(--teal);
+        border-radius: 50%;
+        box-shadow: 0 0 12px var(--teal);
+      }
+      .camera-hint {
+        position: absolute;
+        z-index: 3;
+        bottom: 16px;
+        right: 18px;
+        color: #d6e1dbad;
+        font-size: 12px;
+        pointer-events: none;
+      }
+      .direction-card {
+        position: absolute;
+        z-index: 4;
+        left: 50%;
+        bottom: 100px;
+        transform: translateX(-50%);
+        width: min(390px, calc(100% - 30px));
+        padding: 14px;
+        border: 1px solid rgba(238, 226, 205, 0.26);
+        border-radius: 16px;
+        background: rgba(17, 26, 32, 0.95);
+        box-shadow: 0 14px 36px #071216a8;
+        backdrop-filter: blur(15px);
+      }
+      .direction-card[hidden] {
+        display: none;
+      }
+      .direction-card p {
+        margin: 0 0 10px;
+        font-size: 13px;
+        text-align: center;
+        color: #dce5df;
+      }
+      .direction-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
+      }
+      .direction-actions button {
+        border: 1px solid rgba(231, 189, 117, 0.42);
+        background: #e7bd75;
+        color: #241d15;
+        border-radius: 10px;
+        padding: 11px 8px;
+        font-size: 13px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .direction-actions button:last-child {
+        background: #3c5557;
+        color: #eaf3eb;
+        border-color: #65807c;
+      }
+      .direction-actions button:hover {
+        filter: brightness(1.12);
+      }
+      .notice {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-height: 66px;
+        padding: 13px 17px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.045);
+      }
+      .notice-icon {
+        width: 35px;
+        height: 35px;
+        flex: 0 0 auto;
+        border-radius: 11px;
+        background: rgba(140, 219, 200, 0.12);
+        color: var(--teal);
+        display: grid;
+        place-items: center;
+        font-size: 21px;
+      }
+      .notice strong {
+        display: block;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .notice span {
+        display: block;
+        margin-top: 3px;
+        font-size: 12px;
+        color: #a9bbb7;
+      }
+      .side {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .score-card,
+      .turn-card,
+      .play-card,
+      .log-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 20px;
+      }
+      .section-label {
+        color: #9eaead;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        font-weight: 800;
+        margin: 0 0 15px;
+      }
+      .score-row {
+        display: grid;
+        grid-template-columns: 10px 1fr auto;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 0;
+      }
+      .score-row + .score-row {
+        border-top: 1px solid var(--line);
+      }
+      .score-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--teal);
+      }
+      .score-dot.p2 {
+        background: var(--gold);
+      }
+      .score-name {
+        font-weight: 700;
+        font-size: 14px;
+      }
+      .score-sub {
+        font-size: 12px;
+        color: #a4b3af;
+        margin-top: 2px;
+      }
+      .score-val {
+        font:
+          600 31px/1 Fraunces,
+          serif;
+        font-variant-numeric: tabular-nums;
+      }
+      .turn-card {
+        background: linear-gradient(
+          135deg,
+          rgba(140, 219, 200, 0.15),
+          rgba(255, 255, 255, 0.04)
+        );
+        border-color: rgba(140, 219, 200, 0.24);
+      }
+      .turn-card .section-label {
+        margin-bottom: 10px;
+      }
+      .turn-name {
+        font:
+          600 24px/1.18 Fraunces,
+          serif;
+        color: #f5efdf;
+        margin: 0 0 7px;
+      }
+      .turn-help {
+        font-size: 13px;
+        line-height: 1.45;
+        color: #b4cbc5;
+        margin: 0;
+      }
+      .play-card {
+        padding-bottom: 16px;
+      }
+      .play-card .section-label {
+        margin-bottom: 7px;
+      }
+      .play-intro {
+        margin: 0 0 13px;
+        color: #a9b9b5;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .pit-buttons {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 5px;
+      }
+      .pit-button {
+        background: #24373d;
+        border: 1px solid #4c6566;
+        color: #e9e6d8;
+        border-radius: 10px;
+        min-height: 50px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .pit-button:hover:not(:disabled),
+      .pit-button.selected {
+        background: #355958;
+        border-color: var(--teal);
+      }
+      .pit-button:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      .pit-button small {
+        font-size: 10px;
+        color: #a6b8b1;
+      }
+      .pit-button b {
+        font-size: 16px;
+      }
+      .log-card {
+        flex: 1;
+        min-height: 150px;
+        overflow: hidden;
+      }
+      .log-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 11px;
+      }
+      .log-list li {
+        font-size: 12px;
+        line-height: 1.45;
+        color: #c5d0c9;
+        padding-left: 11px;
+        border-left: 2px solid #697b7a;
+      }
+      .log-list li:first-child {
+        color: #f5ead2;
+        border-color: var(--gold);
+      }
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        color: #819490;
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        padding: 0 3px;
+      }
+      .footer span:last-child {
+        text-align: right;
+      }
+      dialog {
+        width: min(510px, calc(100% - 28px));
+        border: 1px solid #637979;
+        border-radius: 20px;
+        padding: 0;
+        background: #1b2a30;
+        color: #e9ede5;
+        box-shadow: 0 30px 90px #0009;
+      }
+      dialog::backdrop {
+        background: rgba(4, 12, 17, 0.76);
+        backdrop-filter: blur(5px);
+      }
+      .modal-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 22px 24px;
+        border-bottom: 1px solid var(--line);
+      }
+      .modal-head h2 {
+        font:
+          600 25px Fraunces,
+          serif;
+        margin: 0;
+      }
+      .close-btn {
+        border: 0;
+        background: rgba(255, 255, 255, 0.08);
+        color: #e8ece4;
+        border-radius: 9px;
+        width: 34px;
+        height: 34px;
+        cursor: pointer;
+        font-size: 22px;
+        line-height: 1;
+      }
+      .modal-body {
+        padding: 21px 24px 25px;
+        font-size: 14px;
+        color: #c5d2ce;
+        line-height: 1.55;
+      }
+      .modal-body ol {
+        padding-left: 20px;
+        margin: 0;
+      }
+      .modal-body li + li {
+        margin-top: 10px;
+      }
+      .modal-body strong {
+        color: #f2e7d2;
+      }
+      .modal-note {
+        padding: 12px 14px;
+        border-radius: 10px;
+        background: rgba(140, 219, 200, 0.09);
+        margin-top: 18px;
+        color: #cce3da;
+      }
+      .error {
+        position: absolute;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        text-align: center;
+        background: #1c2b31;
+        z-index: 8;
+      }
+      .error.show {
+        display: flex;
+      }
+      .error div {
+        max-width: 360px;
+      }
+      .error h2 {
+        font:
+          600 25px Fraunces,
+          serif;
+      }
+      .error p {
+        color: #b6c5c0;
+        line-height: 1.5;
+      }
+      @media (max-width: 1050px) {
+        .main {
+          grid-template-columns: minmax(0, 1fr) 250px;
+        }
+        .board-panel {
+          min-height: 0;
+        }
+        .score-card,
+        .turn-card,
+        .play-card,
+        .log-card {
+          padding: 16px;
+        }
+      }
+      @media (max-width: 760px) {
+        .app {
+          padding: 12px 10px 18px;
+          gap: 12px;
+        }
+        .topbar {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 10px;
+        }
+        .brand-mark {
+          width: 37px;
+          height: 37px;
+          font-size: 24px;
+        }
+        .brand h1 {
+          font-size: 23px;
+        }
+        .brand p {
+          font-size: 10px;
+        }
+        .top-actions {
+          display: grid;
+          grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+          width: 100%;
+          max-width: none;
+          justify-self: stretch;
+          gap: 6px;
+        }
+        .top-actions > .btn { min-width: 0; }
+        .view-toggle { min-width: 0; }
+        .view-toggle .btn { flex: 1; min-width: 0; }
+        .btn {
+          min-height: 44px;
+          padding: 8px 5px;
+          font-size: 11px;
+        }
+        .long-label { display: none; }
+        .short-label { display: inline; }
+        .main {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          align-items: stretch;
+        }
+        .game-column {
+          display: contents;
+        }
+        .board-panel {
+          order: 2;
+          min-height: 0;
+          height: clamp(270px, 47svh, 420px);
+          flex: none;
+        }
+        .direction-card {
+          position: static;
+          order: 3;
+          width: 100%;
+          transform: none;
+        }
+        .side {
+          display: contents;
+        }
+        .turn-card {
+          order: 1;
+        }
+        .score-card {
+          order: 4;
+        }
+        .play-card {
+          order: 5;
+        }
+        .notice {
+          order: 6;
+        }
+        .log-card {
+          order: 7;
+          min-height: 0;
+        }
+        .score-card {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          justify-content: space-around;
+          padding: 12px 14px;
+        }
+        .score-card .section-label {
+          display: none;
+        }
+        .score-row {
+          padding: 0;
+          grid-template-columns: 8px 1fr auto;
+          flex: 1;
+        }
+        .score-row + .score-row {
+          border-top: 0;
+          border-left: 1px solid var(--line);
+          padding-left: 12px;
+        }
+        .score-val {
+          font-size: 25px;
+        }
+        .turn-card {
+          padding: 12px 15px;
+        }
+        .turn-card .section-label {
+          margin: 0 0 4px;
+        }
+        .turn-name {
+          font-size: 21px;
+          margin-bottom: 2px;
+        }
+        .turn-help {
+          font-size: 12px;
+        }
+        .log-card .section-label {
+          margin-bottom: 8px;
+        }
+        .log-list li:nth-child(n + 3) {
+          display: none;
+        }
+        .footer {
+          font-size: 10px;
+        }
+        .direction-actions button { min-height: 44px; }
+      }
+      @media (max-width: 430px) {
+        .app { padding-inline: 8px; }
+        .board-panel {
+          height: clamp(270px, 47svh, 420px);
+        }
+        .board-2d { padding: 34px 5px 18px; gap: 4px; }
+        .bank-2d { min-height: 23px; padding: 2px 5px; font-size: 9px; }
+        .bank-stone { width: 6px; height: 6px; }
+        .bank-stone.quan { width: 10px; height: 8px; }
+        .board-2d-grid { grid-template-columns: minmax(20px, 0.45fr) repeat(5, minmax(0, 1fr)) minmax(20px, 0.45fr); aspect-ratio: 2.35; border-width: 3px; border-radius: 14px; padding: 6px; }
+        .pit-2d { border-width: 1px; }
+        .camera-hint {
+          font-size: 10px;
+        }
+        .bank-count { font-size: 9px; padding: 2px 4px; }
+        .score-name {
+          font-size: 12px;
+        }
+        .score-sub {
+          font-size: 10px;
+        }
+      }
+      @media (max-width: 760px) and (max-height: 500px) and (orientation: landscape) {
+        .topbar { display: flex; align-items: center; }
+        .top-actions { width: min(330px, 64%); flex: none; }
+        .board-panel { order: 1; height: clamp(220px, 70svh, 300px); }
+        .turn-card { order: 3; }
+        .direction-card { order: 2; }
+      }
+      @media (max-width: 760px) and (max-height: 600px) and (orientation: portrait) {
+        .board-panel { order: 1; height: clamp(230px, 50svh, 290px); }
+        .direction-card { order: 2; }
+        .turn-card { order: 3; }
+      }
+      @media (min-width: 761px) and (max-height: 560px) {
+        .direction-card {
+          position: static;
+          width: 100%;
+          transform: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *:before,
+        *:after {
+          scroll-behavior: auto !important;
+          transition: none !important;
+          animation: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">ô</div>
+          <div>
+            <h1>Ô Ăn Quan</h1>
+            <p>Pebble &amp; pit</p>
+          </div>
+        </div>
+        <nav class="top-actions" aria-label="Game controls">
+          <div class="view-toggle" role="group" aria-label="Board view">
+            <button class="btn" id="view2dBtn" type="button" aria-pressed="false">2D</button>
+            <button class="btn active" id="view3dBtn" type="button" aria-pressed="true">3D</button>
+          </div>
+          <button class="btn" id="rulesBtn" type="button" aria-label="Rule guide"><span class="long-label">Rule guide</span><span class="short-label">Rules</span></button>
+          <button class="btn" id="restartBtn" type="button" aria-label="Restart game"><span class="long-label">Restart game</span><span class="short-label">Restart</span></button>
+        </nav>
+      </header>
+      <main class="main">
+        <div class="game-column">
+          <section
+            class="board-panel"
+            id="boardPanel"
+            aria-label="Interactive 3D Ô Ăn Quan board"
+          >
+            <canvas
+              id="scene"
+              aria-label="3D game board. Choose a pit using the numbered buttons below or click a pit on the board."
+            ></canvas>
+            <div
+              class="board-overlay"
+              id="boardOverlay"
+              aria-hidden="true"
+            ></div>
+            <div class="board-2d" id="board2d" hidden role="group" aria-label="2D game board">
+              <div class="bank-2d" id="bank2dFar"></div>
+              <div class="board-2d-grid" id="board2dGrid"></div>
+              <div class="bank-2d" id="bank2dNear"></div>
+            </div>
+            <div class="board-corner"><i></i> <span id="boardViewLabel">3D board</span></div>
+            <div class="camera-hint" id="cameraHint">View follows the current player</div>
+            <div class="error" id="errorView">
+              <div>
+                <h2>3D board could not load</h2>
+                <p>
+                  Check your internet connection and reload the page. The 3D
+                  library is loaded from a CDN.
+                </p>
+              </div>
+            </div>
+          </section>
+          <div class="direction-card" id="directionCard" hidden>
+            <p id="directionTitle">Choose a direction</p>
+            <div class="direction-actions">
+              <button type="button" id="clockwiseBtn">↻ Clockwise</button
+              ><button type="button" id="counterBtn">↺ Counter-clockwise</button>
+            </div>
+          </div>
+          <div class="notice" role="status" aria-live="polite">
+            <div class="notice-icon" aria-hidden="true">✦</div>
+            <div>
+              <strong id="statusText">Choose a pit to begin</strong
+              ><span id="statusSub"
+                >Pick one of your five small pits, then choose a
+                direction.</span
+              >
+            </div>
+          </div>
+        </div>
+        <aside class="side">
+          <section class="score-card" aria-label="Scores">
+            <h2 class="section-label">Captured points</h2>
+            <div class="score-row">
+              <i class="score-dot"></i>
+              <div>
+                <div class="score-name">Player 1</div>
+                <div class="score-sub">Sea glass</div>
+              </div>
+              <div class="score-val" id="score0">0</div>
+            </div>
+            <div class="score-row">
+              <i class="score-dot p2"></i>
+              <div>
+                <div class="score-name">Player 2</div>
+                <div class="score-sub">Amber</div>
+              </div>
+              <div class="score-val" id="score1">0</div>
+            </div>
+          </section>
+          <section class="turn-card">
+            <h2 class="section-label">Current turn</h2>
+            <p class="turn-name" id="turnName">Player 1</p>
+            <p class="turn-help" id="turnHelp">
+              Choose a highlighted pit on your side.
+            </p>
+          </section>
+          <section class="play-card">
+            <h2 class="section-label">Your five pits</h2>
+            <p class="play-intro">
+              Select a pit by number or click it on the board.
+            </p>
+            <div class="pit-buttons" id="pitButtons"></div>
+          </section>
+          <section class="log-card">
+            <h2 class="section-label">Turn log</h2>
+            <ol class="log-list" id="turnLog"></ol>
+          </section>
+        </aside>
+      </main>
+      <footer class="footer">
+        <span>10 Dân pits · 2 Quan pits · Quan = 10 points</span
+        ><span>Traditional Vietnamese strategy game</span>
+      </footer>
+    </div>
+    <dialog id="rulesDialog" aria-labelledby="rulesTitle">
+      <div class="modal-head">
+        <h2 id="rulesTitle">How to play</h2>
+        <button
+          class="close-btn"
+          id="closeRules"
+          aria-label="Close rule guide"
+          type="button"
+        >
+          ×
+        </button>
+      </div>
+      <div class="modal-body">
+        <ol>
+          <li>
+            <strong>Choose a small pit</strong> on your side that contains
+            pebbles, then choose clockwise or counter-clockwise.
+          </li>
+          <li>
+            <strong>Sow one pebble at a time</strong> into each next pit,
+            including the Quan pits. If the pit after your last drop is an
+            occupied small pit, pick up its pebbles and keep sowing.
+          </li>
+          <li>
+            <strong>Capture across a gap:</strong> if the next pit is an empty
+            small pit and the pit after it is occupied, capture everything in
+            that occupied pit. Repeat across more single empty gaps when
+            possible. An occupied Quan is worth 10 points.
+          </li>
+          <li>
+            <strong>Finish a turn</strong> when the next pit is an occupied
+            Quan, an empty Quan, or two empty pits in a row.
+          </li>
+          <li>
+            <strong>Refill an empty side</strong> with five captured points, one
+            pebble per pit. If needed, borrow the missing points from the
+            opponent; the debt is settled at the end. The game ends when both
+            Quan pits are empty. Remaining pebbles go to the player on that
+            side.
+          </li>
+        </ol>
+        <div class="modal-note">
+          The board turns to face the current player. Switch between 2D and 3D
+          at any time without resetting the game. Use the five numbered pit
+          buttons if a pit is difficult to tap.
+        </div>
+      </div>
+    </dialog>
+    <script>
+      window.__gameReady = false;
+      window.addEventListener("DOMContentLoaded", () =>
+        setTimeout(() => {
+          if (!window.__gameReady)
+            document.getElementById("errorView").classList.add("show");
+        }, 7000),
+      );
+      window.addEventListener("error", () => {
+        if (!window.__gameReady)
+          document.getElementById("errorView")?.classList.add("show");
+      });
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+
+      const $ = (id) => document.getElementById(id);
+      const el = Object.fromEntries(
+        [
+          "scene",
+          "boardPanel",
+          "boardOverlay",
+          "board2d",
+          "board2dGrid",
+          "bank2dFar",
+          "bank2dNear",
+          "boardViewLabel",
+          "cameraHint",
+          "view2dBtn",
+          "view3dBtn",
+          "directionCard",
+          "directionTitle",
+          "clockwiseBtn",
+          "counterBtn",
+          "rulesBtn",
+          "restartBtn",
+          "rulesDialog",
+          "closeRules",
+          "statusText",
+          "statusSub",
+          "score0",
+          "score1",
+          "turnName",
+          "turnHelp",
+          "pitButtons",
+          "turnLog",
+          "errorView",
+        ].map((id) => [id, $(id)]),
+      );
+      const P1 = [0, 1, 2, 3, 4],
+        P2 = [6, 7, 8, 9, 10],
+        QUAN = [5, 11];
+      const pos = [
+        [-4.2, 1.12],
+        [-2.1, 1.12],
+        [0, 1.12],
+        [2.1, 1.12],
+        [4.2, 1.12],
+        [5.53, 0],
+        [4.2, -1.12],
+        [2.1, -1.12],
+        [0, -1.12],
+        [-2.1, -1.12],
+        [-4.2, -1.12],
+        [-5.53, 0],
+      ];
+      const prefersReduced = matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      const game = {
+        pits: [],
+        scores: [0, 0],
+        debt: [0, 0],
+        banks: [{ small: 0, quan: 0 }, { small: 0, quan: 0 }],
+        turn: 0,
+        view: "3d",
+        busy: false,
+        over: false,
+        selected: null,
+        serial: 0,
+        log: [],
+      };
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color("#233840");
+      scene.fog = new THREE.Fog("#233840", 30, 100);
+      const camera = new THREE.PerspectiveCamera(43, 1, 0.1, 200);
+      const renderer = new THREE.WebGLRenderer({
+        canvas: el.scene,
+        antialias: true,
+        alpha: false,
+        powerPreference: "high-performance",
+      });
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.37;
+      scene.add(new THREE.HemisphereLight(0xfff3df, 0x405963, 2.2));
+      const key = new THREE.DirectionalLight(0xffe3b7, 3.1);
+      key.position.set(-6, 12, 8);
+      key.castShadow = true;
+      key.shadow.mapSize.set(2048, 2048);
+      key.shadow.camera.left = -12;
+      key.shadow.camera.right = 12;
+      key.shadow.camera.top = 12;
+      key.shadow.camera.bottom = -12;
+      key.shadow.bias = -0.0005;
+      scene.add(key);
+      const fill = new THREE.DirectionalLight(0x8cd8d3, 1.0);
+      fill.position.set(7, 5, -8);
+      scene.add(fill);
+      const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(80, 80),
+        new THREE.MeshStandardMaterial({ color: 0x24383e, roughness: 1 }),
+      );
+      ground.rotation.x = -Math.PI / 2;
+      ground.position.y = -0.66;
+      ground.receiveShadow = true;
+      scene.add(ground);
+      const board = new THREE.Group();
+      scene.add(board);
+      const woodMat = new THREE.MeshStandardMaterial({
+        color: 0x986743,
+        roughness: 0.82,
+        metalness: 0,
+      });
+      const rimMat = new THREE.MeshStandardMaterial({
+        color: 0xb67a49,
+        roughness: 0.78,
+      });
+      const innerMat = new THREE.MeshStandardMaterial({
+        color: 0x402c23,
+        roughness: 1,
+        side: THREE.DoubleSide,
+      });
+      const lineMat = new THREE.LineBasicMaterial({
+        color: 0x62412b,
+        transparent: true,
+        opacity: 0.55,
+      });
+      const stoneMats = [
+        0xbfc4bc, 0xd9cfb9, 0x888f8b, 0x8b7667, 0xe2dbc9, 0xaaa79e,
+      ].map(
+        (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.93 }),
+      );
+      const quanMat = new THREE.MeshStandardMaterial({
+        color: 0xe0bb7b,
+        roughness: 0.7,
+        metalness: 0.05,
+      });
+      const pebbleGeo = new THREE.IcosahedronGeometry(1, 1),
+        quanGeo = new THREE.IcosahedronGeometry(1, 2);
+      const pitViews = Array.from({ length: 12 }, () => ({
+        small: [],
+        quan: [],
+      }));
+      const pit2dButtons = [];
+      const allStones = new Set();
+      const pitTargets = [],
+        rimMeshes = [],
+        countNodes = [];
+      let hoverPit = null,
+        pointerDown = null;
+
+      function roundedRect(w, h, r) {
+        const s = new THREE.Shape(),
+          x = -w / 2,
+          y = -h / 2;
+        s.moveTo(x + r, y);
+        s.lineTo(x + w - r, y);
+        s.quadraticCurveTo(x + w, y, x + w, y + r);
+        s.lineTo(x + w, y + h - r);
+        s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        s.lineTo(x + r, y + h);
+        s.quadraticCurveTo(x, y + h, x, y + h - r);
+        s.lineTo(x, y + r);
+        s.quadraticCurveTo(x, y, x + r, y);
+        return s;
+      }
+      function quanShape(side, rad) {
+        const s = new THREE.Shape();
+        const x = side === 1 ? 0 : 0;
+        s.moveTo(x, -rad);
+        s.lineTo(x, rad);
+        for (let j = 0; j <= 28; j++) {
+          const a = Math.PI / 2 - (j * Math.PI) / 28;
+          s.lineTo(side * rad * Math.cos(a), rad * Math.sin(a));
+        }
+        s.closePath();
+        return s;
+      }
+      function shapeMesh(shape, mat, y) {
+        const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape, 32), mat);
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.position.y = y;
+        return mesh;
+      }
+      function rimShape(outer, inner) {
+        const s = outer.clone();
+        const path = new THREE.Path();
+        const points = inner.getPoints(60).reverse();
+        path.moveTo(points[0].x, points[0].y);
+        points.slice(1).forEach((p) => path.lineTo(p.x, p.y));
+        path.closePath();
+        s.holes.push(path);
+        return s;
+      }
+      function buildBoard() {
+        const baseShape = roundedRect(15.2, 5.35, 0.78);
+        const base = new THREE.Mesh(
+          new THREE.ExtrudeGeometry(baseShape, {
+            depth: 0.43,
+            bevelEnabled: true,
+            bevelSegments: 3,
+            steps: 1,
+            bevelSize: 0.13,
+            bevelThickness: 0.1,
+            curveSegments: 16,
+          }),
+          woodMat,
+        );
+        base.rotation.x = -Math.PI / 2;
+        base.position.y = -0.38;
+        base.castShadow = true;
+        base.receiveShadow = true;
+        board.add(base);
+        const carvedTop = roundedRect(15.2, 5.35, 0.78);
+        for (let i = 0; i < 12; i++) {
+          const inner = isQuan(i)
+            ? quanShape(i === 5 ? 1 : -1, 1.73)
+            : roundedRect(1.61, 1.54, 0.24);
+          const points = inner.getPoints(60).reverse();
+          const hole = new THREE.Path();
+          hole.moveTo(points[0].x + pos[i][0], points[0].y - pos[i][1]);
+          points
+            .slice(1)
+            .forEach((p) => hole.lineTo(p.x + pos[i][0], p.y - pos[i][1]));
+          hole.closePath();
+          carvedTop.holes.push(hole);
+        }
+        const top = new THREE.Mesh(
+          new THREE.ExtrudeGeometry(carvedTop, {
+            depth: 0.27,
+            bevelEnabled: false,
+            steps: 1,
+            curveSegments: 16,
+          }),
+          woodMat,
+        );
+        top.rotation.x = -Math.PI / 2;
+        top.position.y = 0.13;
+        top.castShadow = true;
+        top.receiveShadow = true;
+        board.add(top);
+        const edge = new THREE.LineLoop(
+          new THREE.BufferGeometry().setFromPoints(
+            baseShape
+              .getPoints(100)
+              .map((p) => new THREE.Vector3(p.x, 0.39, -p.y)),
+          ),
+          lineMat,
+        );
+        board.add(edge);
+        for (let i = 0; i < 12; i++) {
+          const outer = QUAN.includes(i)
+            ? quanShape(i === 5 ? 1 : -1, 1.97)
+            : roundedRect(1.9, 1.82, 0.34);
+          const inner = QUAN.includes(i)
+            ? quanShape(i === 5 ? 1 : -1, 1.73)
+            : roundedRect(1.61, 1.54, 0.24);
+          const pit = new THREE.Group();
+          pit.position.set(pos[i][0], 0, pos[i][1]);
+          board.add(pit);
+          const shadow = shapeMesh(inner, innerMat, 0.157);
+          pit.add(shadow);
+          const floor = shapeMesh(
+            inner,
+            new THREE.MeshStandardMaterial({
+              color: 0x65452f,
+              roughness: 1,
+              side: THREE.DoubleSide,
+            }),
+            0.16,
+          );
+          floor.scale.set(0.91, 0.91, 0.91);
+          pit.add(floor);
+          const rim = new THREE.Mesh(
+            new THREE.ExtrudeGeometry(rimShape(outer, inner), {
+              depth: 0.055,
+              bevelEnabled: true,
+              bevelThickness: 0.024,
+              bevelSize: 0.025,
+              bevelSegments: 2,
+              curveSegments: 16,
+            }),
+            rimMat,
+          );
+          rim.rotation.x = -Math.PI / 2;
+          rim.position.y = 0.4;
+          rim.receiveShadow = true;
+          pit.add(rim);
+          rimMeshes[i] = rim;
+          const hit = shapeMesh(
+            outer,
+            new THREE.MeshBasicMaterial({
+              visible: false,
+              side: THREE.DoubleSide,
+            }),
+            0.63,
+          );
+          hit.userData.pit = i;
+          pit.add(hit);
+          pitTargets.push(hit);
+          const tag = document.createElement("span");
+          tag.className = "pit-count" + (QUAN.includes(i) ? " quan" : "");
+          tag.textContent = "0";
+          el.boardOverlay.appendChild(tag);
+          countNodes[i] = tag;
+        }
+        const divider = new THREE.Mesh(
+          new THREE.BoxGeometry(10.45, 0.025, 0.055),
+          new THREE.MeshStandardMaterial({ color: 0x66462e, roughness: 1 }),
+        );
+        divider.position.set(0, 0.44, 0);
+        board.add(divider);
+        for (const z of [-2.47, 2.47]) {
+          const groove = new THREE.Mesh(
+            new THREE.BoxGeometry(13.7, 0.012, 0.025),
+            new THREE.MeshStandardMaterial({ color: 0x754d31, roughness: 1 }),
+          );
+          groove.position.set(0, 0.41, z);
+          board.add(groove);
+        }
+      }
+      buildBoard();
+      const bankTags = [0, 1].map((p) => {
+        const tag = document.createElement("span");
+        tag.className = "bank-count";
+        tag.textContent = `Player ${p + 1} bank`;
+        el.boardOverlay.appendChild(tag);
+        return tag;
+      });
+      const bank3d = [0, 1].map((p) => {
+        const group = new THREE.Group();
+        const tray = new THREE.Mesh(
+          new THREE.BoxGeometry(11.2, 0.15, 1.1),
+          new THREE.MeshStandardMaterial({ color: 0x795036, roughness: 0.8 }),
+        );
+        tray.position.set(0, -0.07, p === 0 ? 3.65 : -3.65);
+        group.add(tray);
+        scene.add(group);
+        return { group, stones: [] };
+      });
+      function build2DBoard() {
+        for (let i = 0; i < 12; i++) {
+          const button = document.createElement("button");
+          const label = document.createElement("small");
+          const count = document.createElement("strong");
+          button.type = "button";
+          button.className = "pit-2d";
+          button.append(label, count);
+          button.addEventListener("click", () => selectPit(i));
+          el.board2dGrid.appendChild(button);
+          pit2dButtons[i] = { button, label, count };
+        }
+      }
+      build2DBoard();
+
+      function next(i, d) {
+        return (i + d + 12) % 12;
+      }
+      function sideOf(p) {
+        return p === 0 ? P1 : P2;
+      }
+      function total(pit) {
+        return pit.small + pit.quan;
+      }
+      function bankValue(p) {
+        return game.banks[p].small + 10 * game.banks[p].quan;
+      }
+      function reconcileBank(p) {
+        const bank = game.banks[p];
+        const target = Math.max(0, game.scores[p]);
+        while (bankValue(p) > target) {
+          if (bank.small) bank.small--;
+          else if (bank.quan) { bank.quan--; bank.small += 9; }
+        }
+        if (bankValue(p) < target) bank.small += target - bankValue(p);
+        renderBanks();
+      }
+      function renderBanks() {
+        for (let p = 0; p < 2; p++) {
+          const bank = game.banks[p];
+          bankTags[p].textContent = `Player ${p + 1} · ${Math.max(0, game.scores[p])}`;
+          const tray = bank3d[p];
+          for (const mesh of tray.stones) tray.group.remove(mesh);
+          tray.stones = [];
+          const pieces = [
+            ...Array(bank.quan).fill(true),
+            ...Array(bank.small).fill(false),
+          ];
+          pieces.forEach((large, n) => {
+            const mesh = new THREE.Mesh(large ? quanGeo : pebbleGeo, large ? quanMat : stoneMats[n % stoneMats.length]);
+            mesh.scale.set(large ? 0.23 : 0.105, large ? 0.14 : 0.07, large ? 0.2 : 0.105);
+            mesh.position.set(-5.1 + (n % 35) * 0.3, 0.15, (p === 0 ? 3.46 : -3.46) + (p === 0 ? 1 : -1) * Math.floor(n / 35) * 0.23);
+            tray.group.add(mesh);
+            tray.stones.push(mesh);
+          });
+        }
+        render2DBanks();
+      }
+      const bank2DSignatures = ["", ""];
+      function render2DBanks() {
+        for (const [slot, node, p] of [[0, el.bank2dFar, 1 - game.turn], [1, el.bank2dNear, game.turn]]) {
+          const bank = game.banks[p];
+          const signature = `${p}:${game.scores[p]}:${bank.small}:${bank.quan}`;
+          if (signature === bank2DSignatures[slot]) continue;
+          bank2DSignatures[slot] = signature;
+          const label = document.createElement("strong");
+          label.textContent = `${displayName(p)} · ${Math.max(0, game.scores[p])}`;
+          const stones = document.createElement("span");
+          stones.className = "bank-stones";
+          for (const large of [...Array(bank.quan).fill(true), ...Array(bank.small).fill(false)]) {
+            const piece = document.createElement("i");
+            piece.className = `bank-stone${large ? " quan" : ""}`;
+            piece.setAttribute("aria-hidden", "true");
+            stones.appendChild(piece);
+          }
+          node.replaceChildren(label, stones);
+          node.setAttribute("aria-label", `${displayName(p)} bank: ${bank.small} pebbles and ${bank.quan} Quan stones`);
+        }
+      }
+      function isQuan(i) {
+        return i === 5 || i === 11;
+      }
+      function rand(seed) {
+        const x = Math.sin(seed * 127.1 + 44.7) * 43758.5453;
+        return x - Math.floor(x);
+      }
+      function stonePosition(i, n, large = false) {
+        const [x, z] = pos[i];
+        if (large)
+          return new THREE.Vector3(x + (i === 5 ? 0.82 : -0.82), 0.42, z);
+        const angle = n * 2.399 + rand(i * 33 + n) * 0.35;
+        const radius =
+          (isQuan(i) ? 0.59 : 0.58) * Math.sqrt(((n % 19) + 0.5) / 19);
+        const layer = Math.floor(n / 19);
+        return new THREE.Vector3(
+          x + Math.cos(angle) * radius,
+          0.32 + layer * 0.17 + rand(n * 5 + i) * 0.025,
+          z + Math.sin(angle) * radius * 0.91,
+        );
+      }
+      function createStone(i, n, large = false) {
+        const mesh = new THREE.Mesh(
+          large ? quanGeo : pebbleGeo,
+          large
+            ? quanMat
+            : stoneMats[Math.floor(rand(i * 19 + n * 7) * stoneMats.length)],
+        );
+        if (large) {
+          mesh.scale.set(0.36, 0.22, 0.3);
+          mesh.rotation.set(0.08, 0.32, -0.07);
+        } else {
+          const size = 0.13 + rand(i * 73 + n * 11) * 0.055;
+          mesh.scale.set(
+            size,
+            0.085 + rand(n * 3 + i) * 0.035,
+            size * (0.82 + rand(n * 8 + i) * 0.45),
+          );
+          mesh.rotation.set(
+            rand(n * 2) * 0.25,
+            rand(n * 7) * 6.28,
+            rand(n * 3) * 0.3,
+          );
+        }
+        mesh.position.copy(stonePosition(i, n, large));
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        board.add(mesh);
+        allStones.add(mesh);
+        return mesh;
+      }
+      function clearStones() {
+        for (const mesh of allStones) board.remove(mesh);
+        allStones.clear();
+        for (const view of pitViews) {
+          view.small = [];
+          view.quan = [];
+        }
+      }
+      function populate() {
+        clearStones();
+        for (let i = 0; i < 12; i++) {
+          for (let n = 0; n < game.pits[i].small; n++)
+            pitViews[i].small.push(createStone(i, n));
+          for (let n = 0; n < game.pits[i].quan; n++)
+            pitViews[i].quan.push(createStone(i, n, true));
+        }
+        updateCounts();
+      }
+      function updateCounts() {
+        for (let i = 0; i < 12; i++) {
+          countNodes[i].textContent = total(game.pits[i]);
+          countNodes[i].style.display = total(game.pits[i]) ? "grid" : "none";
+        }
+        render2D();
+      }
+      function render2D() {
+        if (!game.pits.length) return;
+        const near = sideOf(game.turn);
+        const far = [...sideOf(1 - game.turn)].reverse();
+        for (const [row, indices] of [[1, far], [2, near]]) {
+          indices.forEach((i, column) => {
+            const { button } = pit2dButtons[i];
+            button.style.gridRow = String(row);
+            button.style.gridColumn = String(column + 2);
+          });
+        }
+        for (const [i, column] of [[game.turn === 0 ? 11 : 5, 1], [game.turn === 0 ? 5 : 11, 7]]) {
+          const { button } = pit2dButtons[i];
+          button.style.gridRow = "1 / span 2";
+          button.style.gridColumn = String(column);
+        }
+        for (let i = 0; i < 12; i++) {
+          const { button, label, count } = pit2dButtons[i];
+          const quan = isQuan(i);
+          const player = P1.includes(i) ? 0 : 1;
+          const number = sideOf(player).indexOf(i) + 1;
+          const eligible = !quan && !game.busy && !game.over && near.includes(i) && game.pits[i].small > 0;
+          button.classList.toggle("quan", quan);
+          button.classList.toggle("available", eligible);
+          button.classList.toggle("selected", game.selected === i);
+          button.disabled = !eligible;
+          button.setAttribute("aria-pressed", String(game.selected === i));
+          button.setAttribute("aria-label", quan
+            ? `Quan pit, ${game.pits[i].small} pebbles and ${game.pits[i].quan} Quan stone`
+            : `${displayName(player)} pit ${number}, ${game.pits[i].small} pebbles`);
+          label.textContent = quan ? "QUAN" : `P${player + 1} · ${number}`;
+          count.textContent = String(total(game.pits[i]));
+        }
+        render2DBanks();
+      }
+      function setView(view) {
+        game.view = view;
+        const is3d = view === "3d";
+        el.scene.hidden = !is3d;
+        el.boardOverlay.hidden = !is3d;
+        el.board2d.hidden = is3d;
+        el.cameraHint.hidden = !is3d;
+        el.boardViewLabel.textContent = is3d ? "3D board" : "2D board";
+        el.boardPanel.setAttribute("aria-label", `Interactive ${view.toUpperCase()} Ô Ăn Quan board`);
+        for (const [button, active] of [[el.view2dBtn, !is3d], [el.view3dBtn, is3d]]) {
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", String(active));
+        }
+        render2D();
+        resize();
+      }
+      function displayName(p) {
+        return p === 0 ? "Player 1" : "Player 2";
+      }
+      function say(main, sub = "") {
+        el.statusText.textContent = main;
+        el.statusSub.textContent = sub;
+      }
+      function log(msg) {
+        game.log.unshift(msg);
+        game.log = game.log.slice(0, 4);
+        el.turnLog.replaceChildren(
+          ...game.log.map((s) => {
+            const li = document.createElement("li");
+            li.textContent = s;
+            return li;
+          }),
+        );
+      }
+      function renderUI() {
+        el.score0.textContent = game.scores[0];
+        el.score1.textContent = game.scores[1];
+        el.turnName.textContent = game.over
+          ? "Game complete"
+          : displayName(game.turn);
+        el.turnHelp.textContent = game.over
+          ? "Start a new game to play again."
+          : game.busy
+            ? "Stones are moving…"
+            : "Choose a highlighted pit on your side.";
+        const side = sideOf(game.turn);
+        el.pitButtons.replaceChildren(
+          ...side.map((i, n) => {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.className =
+              "pit-button" + (game.selected === i ? " selected" : "");
+            b.disabled =
+              game.over ||
+              game.busy ||
+              game.pits[i].small === 0;
+            b.setAttribute(
+              "aria-label",
+              `Pit ${n + 1}, ${game.pits[i].small} pebbles`,
+            );
+            b.innerHTML = `<small>PIT ${n + 1}</small><b>${game.pits[i].small}</b>`;
+            b.addEventListener("click", () => selectPit(i));
+            return b;
+          }),
+        );
+        for (let i = 0; i < 12; i++) {
+          const eligible =
+            !game.busy &&
+            !game.over &&
+            side.includes(i) &&
+            game.pits[i].small > 0;
+          rimMeshes[i].material = eligible ? highlightMat : rimMat;
+          rimMeshes[i].scale.setScalar(game.selected === i ? 1.035 : 1);
+        }
+        render2D();
+      }
+      const activeFlights = new Set();
+      function cancelFlights() {
+        for (const flight of activeFlights) {
+          flight.motion.cancel();
+          flight.piece.remove();
+        }
+        activeFlights.clear();
+      }
+      function fly2D(from, to, duration, large = false) {
+        if (prefersReduced || game.view !== "2d" || !from || !to) return Promise.resolve();
+        const a = from.getBoundingClientRect(), b = to.getBoundingClientRect();
+        if (!a.width || !b.width) return Promise.resolve();
+        const piece = document.createElement("i");
+        piece.className = `flying-stone${large ? " quan" : ""}`;
+        piece.style.left = `${a.left + a.width / 2}px`;
+        piece.style.top = `${a.top + a.height / 2}px`;
+        document.body.appendChild(piece);
+        const motion = piece.animate([
+          { transform: "translate(-50%, -50%)" },
+          { transform: `translate(calc(-50% + ${b.left + b.width / 2 - a.left - a.width / 2}px), calc(-50% + ${b.top + b.height / 2 - a.top - a.height / 2}px))` },
+        ], { duration: duration * 1000, easing: "ease-in-out" });
+        const flight = { piece, motion };
+        activeFlights.add(flight);
+        return motion.finished.catch(() => {}).then(() => {
+          piece.remove();
+          activeFlights.delete(flight);
+        });
+      }
+      let turnAnimation = null;
+      function cancelTurnAnimation() {
+        if (!turnAnimation) return;
+        cancelAnimationFrame(turnAnimation.frame);
+        for (const motion of turnAnimation.motions) motion.cancel();
+        turnAnimation.resolve();
+        turnAnimation = null;
+        frameCamera();
+      }
+      function animateTurn(oldRects) {
+        if (prefersReduced) { frameCamera(); return Promise.resolve(); }
+        return new Promise((resolve) => {
+          const state = { frame: 0, motions: [], resolve };
+          turnAnimation = state;
+          if (game.view === "2d") {
+            for (let i = 0; i < 12; i++) {
+              const button = pit2dButtons[i].button;
+              const before = oldRects[i], after = button.getBoundingClientRect();
+              if (!before.width || !after.width) continue;
+              state.motions.push(button.animate([
+                { transform: `translate(${before.left - after.left}px, ${before.top - after.top}px)` },
+                { transform: "translate(0, 0)" },
+              ], { duration: 700, easing: "ease-in-out" }));
+            }
+          }
+          const start = performance.now();
+          const from = game.turn === 0 ? Math.PI : 0;
+          const to = game.turn === 0 ? 0 : Math.PI;
+          function step(now) {
+            if (turnAnimation !== state) return;
+            const t = Math.min(1, (now - start) / 700);
+            const eased = t * t * (3 - 2 * t);
+            const angle = from + (to - from) * eased;
+            frameCamera(angle);
+            if (t < 1) state.frame = requestAnimationFrame(step);
+            else { turnAnimation = null; resolve(); }
+          }
+          state.frame = requestAnimationFrame(step);
+        });
+      }
+      const highlightMat = new THREE.MeshStandardMaterial({
+        color: 0xb98b5c,
+        emissive: 0x2e7569,
+        emissiveIntensity: 0.25,
+        roughness: 0.7,
+      });
+      function selectPit(i) {
+        if (
+          game.busy ||
+          game.over ||
+          !sideOf(game.turn).includes(i) ||
+          game.pits[i].small < 1
+        )
+          return;
+        game.selected = i;
+        el.directionCard.hidden = false;
+        el.directionTitle.textContent = `Pit ${sideOf(game.turn).indexOf(i) + 1} has ${game.pits[i].small} pebbles. Which way?`;
+        say(
+          "Choose a sowing direction",
+          `${displayName(game.turn)} selected pit ${sideOf(game.turn).indexOf(i) + 1}.`,
+        );
+        renderUI();
+      }
+      function tween(mesh, to, duration = 0.24) {
+        if (prefersReduced || duration <= 0) {
+          mesh.position.copy(to);
+          return Promise.resolve();
+        }
+        return new Promise((resolve) => {
+          const start = mesh.position.clone();
+          const startAt = performance.now();
+          function step(now) {
+            const t = Math.min(1, (now - startAt) / (duration * 1000));
+            const eased = t * t * (3 - 2 * t);
+            mesh.position.lerpVectors(start, to, eased);
+            mesh.position.y += Math.sin(t * Math.PI) * 0.45;
+            if (t < 1) requestAnimationFrame(step);
+            else { mesh.position.copy(to); resolve(); }
+          }
+          requestAnimationFrame(step);
+        });
+      }
+      async function sowMove(i, d, serial) {
+        let cursor = i,
+          hand = pitViews[i].small.splice(0);
+        let handSource = i;
+        game.pits[i].small = 0;
+        updateCounts();
+        const initial = hand.length;
+        log(
+          `${displayName(game.turn)} chose pit ${sideOf(game.turn).indexOf(i) + 1} · ${d === 1 ? "clockwise" : "counter-clockwise"}.`,
+        );
+        say(
+          `${displayName(game.turn)} is sowing ${initial} pebbles`,
+          "Watch each pebble move around the board.",
+        );
+        let steps = 0,
+          captured = 0,
+          quanTaken = 0;
+        while (hand.length && steps < 3000 && serial === game.serial) {
+          while (hand.length && steps < 3000 && serial === game.serial) {
+            cursor = next(cursor, d);
+            const stone = hand.shift();
+            const target = stonePosition(cursor, pitViews[cursor].small.length);
+            await Promise.all([
+              tween(stone, target, 0.3),
+              fly2D(pit2dButtons[handSource].button, pit2dButtons[cursor].button, 0.3),
+            ]);
+            if (serial !== game.serial) return;
+            pitViews[cursor].small.push(stone);
+            game.pits[cursor].small++;
+            steps++;
+            updateCounts();
+          }
+          if (serial !== game.serial) return;
+          const gap = next(cursor, d);
+          if (isQuan(gap)) break;
+          if (total(game.pits[gap]) > 0) {
+            hand = pitViews[gap].small.splice(0);
+            handSource = gap;
+            game.pits[gap].small = 0;
+            cursor = gap;
+            updateCounts();
+            say(
+              "Relay sowing continues",
+              `${displayName(game.turn)} picked up ${hand.length} pebbles from the next pit.`,
+            );
+            continue;
+          }
+          let empty = gap;
+          while (!isQuan(empty) && serial === game.serial) {
+            const target = next(empty, d);
+            if (total(game.pits[target]) === 0) break;
+            const won = game.pits[target].small + 10 * game.pits[target].quan;
+            captured += won;
+            quanTaken += game.pits[target].quan;
+            const capturedSmall = game.pits[target].small;
+            const capturedQuan = game.pits[target].quan;
+            const stones = [
+              ...pitViews[target].small,
+              ...pitViews[target].quan,
+            ];
+            pitViews[target].small = [];
+            pitViews[target].quan = [];
+            game.pits[target] = { small: 0, quan: 0 };
+            game.scores[game.turn] += won;
+            updateCounts();
+            renderUI();
+            say(
+              `${displayName(game.turn)} captured ${won} point${won === 1 ? "" : "s"}!`,
+              isQuan(target)
+                ? "A Quan stone is worth 10 points."
+                : "Captured across an empty pit.",
+            );
+            const captureAt = new THREE.Vector3(0, 0.3, game.turn === 0 ? 3.6 : -3.6);
+            await Promise.all([
+              ...stones.map((_, j) => fly2D(pit2dButtons[target].button, el.bank2dNear, 0.42, j >= capturedSmall)),
+              ...stones.map((m, j) =>
+                tween(
+                  m,
+                  captureAt
+                    .clone()
+                    .add(
+                      new THREE.Vector3(
+                        (j % 5) * 0.08,
+                        Math.floor(j / 5) * 0.06,
+                        0,
+                      ),
+                    ),
+                  0.42,
+                ).then(() => {
+                  board.remove(m);
+                  allStones.delete(m);
+                }),
+              )
+            ]);
+            if (serial !== game.serial) return;
+            game.banks[game.turn].small += capturedSmall;
+            game.banks[game.turn].quan += capturedQuan;
+            reconcileBank(game.turn);
+            const after = next(target, d);
+            if (isQuan(after) || total(game.pits[after]) !== 0) break;
+            empty = after;
+          }
+          break;
+        }
+        if (serial !== game.serial) return;
+        if (captured)
+          log(
+            `${displayName(game.turn)} captured ${captured} point${captured === 1 ? "" : "s"}${quanTaken ? " including a Quan" : ""}.`,
+          );
+        return { captured, steps };
+      }
+      function bothQuanGone() {
+        return QUAN.every((i) => total(game.pits[i]) === 0);
+      }
+      function settleDebt() {
+        for (let p = 0; p < 2; p++) {
+          const owed = game.debt[p];
+          game.scores[p] -= owed;
+          game.scores[1 - p] += owed;
+          game.debt[p] = 0;
+        }
+      }
+      function finishGame() {
+        game.over = true;
+        for (let p = 0; p < 2; p++) {
+          for (const i of sideOf(p)) {
+            game.scores[p] += game.pits[i].small;
+            game.banks[p].small += game.pits[i].small;
+            game.pits[i].small = 0;
+          }
+        }
+        settleDebt();
+        reconcileBank(0);
+        reconcileBank(1);
+        populate();
+        const name =
+          game.scores[0] === game.scores[1]
+            ? "A draw"
+            : `${displayName(game.scores[0] > game.scores[1] ? 0 : 1)} wins`;
+        say(`${name}!`, `Final score: ${game.scores[0]} to ${game.scores[1]}.`);
+        log(`${name} · ${game.scores[0]}–${game.scores[1]}.`);
+        renderUI();
+      }
+      function replenish(p) {
+        if (sideOf(p).some((i) => game.pits[i].small > 0)) return null;
+        const own = Math.min(5, Math.max(0, game.scores[p]));
+        const borrowed = 5 - own;
+        game.scores[p] -= own;
+        if (borrowed) {
+          game.scores[1 - p] -= borrowed;
+          game.debt[p] += borrowed;
+        }
+        reconcileBank(p);
+        reconcileBank(1 - p);
+        for (const i of sideOf(p)) game.pits[i].small = 1;
+        populate();
+        log(
+          `${displayName(p)} refilled five pits${borrowed ? ` and borrowed ${borrowed} point${borrowed === 1 ? "" : "s"}` : ""}.`,
+        );
+        say(
+          `${displayName(p)} refilled their side`,
+          borrowed
+            ? `${borrowed} point${borrowed === 1 ? " was" : "s were"} borrowed and will be repaid at the end.`
+            : "Five captured points returned to the board.",
+        );
+        return { borrowed };
+      }
+      async function play(d) {
+        if (game.selected === null || game.busy || game.over) return;
+        const i = game.selected;
+        game.selected = null;
+        el.directionCard.hidden = true;
+        game.busy = true;
+        renderUI();
+        const serial = game.serial;
+        await sowMove(i, d, serial);
+        if (serial !== game.serial) return;
+        if (bothQuanGone()) {
+          game.busy = false;
+          finishGame();
+          return;
+        }
+        const oldRects = pit2dButtons.map(({ button }) => button.getBoundingClientRect());
+        game.turn = 1 - game.turn;
+        const refill = replenish(game.turn);
+        log(`${displayName(game.turn)}'s turn.`);
+        renderUI();
+        await animateTurn(oldRects);
+        if (serial !== game.serial) return;
+        game.busy = false;
+        renderUI();
+        say(
+          `${displayName(game.turn)}'s turn`,
+          refill
+            ? `Your empty side was refilled with one stone per pit${refill.borrowed ? `; ${refill.borrowed} point${refill.borrowed === 1 ? " was" : "s were"} borrowed` : ""}. Choose a pit.`
+            : "Choose one of your five pits, then choose a direction.",
+        );
+      }
+      function restart() {
+        game.serial++;
+        cancelTurnAnimation();
+        cancelFlights();
+        game.pits = Array.from({ length: 12 }, (_, i) => ({
+          small: isQuan(i) ? 0 : 5,
+          quan: isQuan(i) ? 1 : 0,
+        }));
+        game.scores = [0, 0];
+        game.debt = [0, 0];
+        game.banks = [{ small: 0, quan: 0 }, { small: 0, quan: 0 }];
+        game.turn = 0;
+        game.busy = false;
+        game.over = false;
+        game.selected = null;
+        game.log = [];
+        el.directionCard.hidden = true;
+        populate();
+        renderBanks();
+        frameCamera();
+        log("A new game begins. Player 1 moves first.");
+        say(
+          "Choose a pit to begin",
+          "Pick one of your five small pits, then choose a direction.",
+        );
+        renderUI();
+      }
+      function pickAt(e) {
+        const rect = el.scene.getBoundingClientRect();
+        const pointer = new THREE.Vector2(
+          ((e.clientX - rect.left) / rect.width) * 2 - 1,
+          (-(e.clientY - rect.top) / rect.height) * 2 + 1,
+        );
+        const ray = new THREE.Raycaster();
+        ray.setFromCamera(pointer, camera);
+        const hits = ray.intersectObjects(pitTargets, false);
+        return hits.length ? hits[0].object.userData.pit : null;
+      }
+      el.scene.addEventListener("pointerdown", (e) => {
+        pointerDown = { x: e.clientX, y: e.clientY };
+      });
+      el.scene.addEventListener("pointerup", (e) => {
+        if (!pointerDown) return;
+        const moved = Math.hypot(
+          e.clientX - pointerDown.x,
+          e.clientY - pointerDown.y,
+        );
+        pointerDown = null;
+        if (moved < 7) {
+          const i = pickAt(e);
+          if (i !== null) selectPit(i);
+        }
+      });
+      el.scene.addEventListener("pointermove", (e) => {
+        if (game.busy || game.over) return;
+        const i = pickAt(e);
+        hoverPit = i;
+        el.scene.style.cursor =
+          i !== null && sideOf(game.turn).includes(i) && game.pits[i].small
+            ? "pointer"
+            : "grab";
+      });
+      el.clockwiseBtn.addEventListener("click", () => play(1));
+      el.counterBtn.addEventListener("click", () => play(-1));
+      el.restartBtn.addEventListener("click", restart);
+      el.view2dBtn.addEventListener("click", () => setView("2d"));
+      el.view3dBtn.addEventListener("click", () => setView("3d"));
+      el.rulesBtn.addEventListener("click", () => el.rulesDialog.showModal());
+      el.closeRules.addEventListener("click", () => el.rulesDialog.close());
+      document.addEventListener("keydown", (e) => {
+        if (el.rulesDialog.open) return;
+        if (e.key === "Escape" && game.selected !== null) {
+          game.selected = null;
+          el.directionCard.hidden = true;
+          renderUI();
+        }
+        if (
+          game.selected !== null &&
+          (e.key === "ArrowRight" || e.key === "ArrowLeft")
+        ) {
+          e.preventDefault();
+          play(e.key === "ArrowRight" ? 1 : -1);
+        }
+      });
+      const frameCorners = [-7.9, 7.9].flatMap((x) =>
+        [-4.35, 4.35].flatMap((z) =>
+          [-0.7, 1.0].map((y) => new THREE.Vector3(x, y, z)),
+        ),
+      );
+      function frameCamera(angle = game.turn * Math.PI) {
+        if (!Number.isFinite(camera.aspect) || camera.aspect <= 0) return;
+        const direction = new THREE.Vector3(Math.sin(angle), 1.15, Math.cos(angle)).normalize();
+        camera.up.set(0, 1, 0);
+        let near = 5;
+        let far = 100;
+        for (let step = 0; step < 20; step++) {
+          const distance = (near + far) / 2;
+          camera.position.copy(direction).multiplyScalar(distance);
+          camera.lookAt(0, 0, 0);
+          camera.updateMatrixWorld();
+          const fits = frameCorners.every((corner) => {
+            const point = corner.clone().project(camera);
+            return Math.abs(point.x) <= 0.86 && Math.abs(point.y) <= 0.86;
+          });
+          if (fits) far = distance;
+          else near = distance;
+        }
+        camera.position.copy(direction).multiplyScalar(far);
+        camera.lookAt(0, 0, 0);
+        camera.updateMatrixWorld();
+      }
+      let lastSize = "";
+      function resize() {
+        const width = el.boardPanel.clientWidth,
+          height = el.boardPanel.clientHeight;
+        if (!width || !height) return;
+        const size = `${width}x${height}`;
+        if (size !== lastSize) cancelTurnAnimation();
+        lastSize = size;
+        renderer.setSize(width, height, false);
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        frameCamera();
+      }
+      new ResizeObserver(resize).observe(el.boardPanel);
+      resize();
+      function animate() {
+        requestAnimationFrame(animate);
+        if (game.view !== "3d") return;
+        renderer.render(scene, camera);
+        const rect = el.scene.getBoundingClientRect();
+        for (let i = 0; i < 12; i++) {
+          const v = new THREE.Vector3(pos[i][0], 0.67, pos[i][1]);
+          board.localToWorld(v);
+          v.project(camera);
+          countNodes[i].style.left = `${((v.x + 1) * rect.width) / 2}px`;
+          countNodes[i].style.top = `${((-v.y + 1) * rect.height) / 2}px`;
+        }
+        for (let p = 0; p < 2; p++) {
+          const v = new THREE.Vector3(0, 0.72, p === 0 ? 3.65 : -3.65).project(camera);
+          bankTags[p].style.left = `${((v.x + 1) * rect.width) / 2}px`;
+          bankTags[p].style.top = `${((-v.y + 1) * rect.height) / 2}px`;
+        }
+      }
+      animate();
+      restart();
+      setView("3d");
+      window.__gameReady = true;
+      el.errorView.classList.remove("show");
+    </script>
+  </body>
+</html>
