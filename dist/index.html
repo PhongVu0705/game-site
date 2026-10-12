@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#111a20" />
     <meta
       name="description"
-      content="Play Ô Ăn Quan, the traditional Vietnamese pebble game, on an interactive 3D board."
+      content="Play Ô Ăn Quan with two players on an interactive 2D or 3D board."
     />
     <title>Ô Ăn Quan · Pebble & Pit</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -143,14 +143,28 @@
         color: var(--teal);
         background: rgba(140, 219, 200, 0.1);
       }
+      .view-toggle {
+        display: flex;
+        gap: 3px;
+        padding: 3px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .view-toggle .btn {
+        border: 0;
+        padding: 7px 12px;
+      }
       .main {
         display: grid;
         grid-template-columns: minmax(0, 1fr) 292px;
         gap: 18px;
         flex: 1;
         min-height: 0;
+        align-items: start;
       }
       .game-column {
+        position: relative;
         min-width: 0;
         display: flex;
         flex-direction: column;
@@ -158,8 +172,9 @@
       }
       .board-panel {
         position: relative;
-        min-height: 490px;
-        flex: 1;
+        min-height: 0;
+        height: clamp(280px, calc(100svh - 180px), 650px);
+        flex: none;
         overflow: hidden;
         border: 1px solid rgba(232, 239, 228, 0.13);
         border-radius: 22px;
@@ -195,6 +210,56 @@
         display: block;
         touch-action: none;
       }
+      #scene[hidden],
+      .board-overlay[hidden],
+      .board-2d[hidden] {
+        display: none;
+      }
+      .board-2d {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        display: grid;
+        place-items: center;
+        padding: 50px 18px 72px;
+      }
+      .board-2d-grid {
+        display: grid;
+        grid-template-columns: minmax(28px, 0.62fr) repeat(5, minmax(0, 1fr)) minmax(28px, 0.62fr);
+        grid-template-rows: repeat(2, minmax(0, 1fr));
+        gap: clamp(3px, 0.65vw, 10px);
+        width: min(100%, 950px);
+        aspect-ratio: 2.8;
+        max-height: 100%;
+        padding: clamp(8px, 1.2vw, 18px);
+        border: 5px solid #a9784f;
+        border-radius: 28px;
+        background: linear-gradient(145deg, #b98656, #8c5b38);
+        box-shadow: 0 18px 42px #07121688, inset 0 2px 5px #f6d09b55;
+      }
+      .pit-2d {
+        min-width: 0;
+        min-height: 0;
+        border: 2px solid #c99968;
+        border-radius: 38%;
+        background: radial-gradient(ellipse, #674631, #442d22);
+        color: #f5eddb;
+        box-shadow: inset 0 4px 12px #1c100c99, 0 1px 2px #f3d2a650;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
+        padding: 3px;
+        cursor: pointer;
+      }
+      .pit-2d.quan { border-radius: 48%; }
+      .pit-2d small { font-size: clamp(8px, 0.75vw, 11px); line-height: 1; }
+      .pit-2d strong { font-size: clamp(15px, 2vw, 26px); line-height: 1.1; }
+      .pit-2d.available { border-color: var(--teal); box-shadow: inset 0 4px 12px #1c100c99, 0 0 0 2px #8cdbc855; }
+      .pit-2d.selected { background: #4b665b; border-color: #e7bd75; }
+      .pit-2d:disabled { cursor: default; }
+      .pit-2d:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
       .board-overlay {
         position: absolute;
         inset: 0;
@@ -259,7 +324,7 @@
         position: absolute;
         z-index: 4;
         left: 50%;
-        bottom: 18px;
+        bottom: 100px;
         transform: translateX(-50%);
         width: min(390px, calc(100% - 30px));
         padding: 14px;
@@ -586,7 +651,7 @@
           grid-template-columns: minmax(0, 1fr) 250px;
         }
         .board-panel {
-          min-height: 440px;
+          min-height: 0;
         }
         .score-card,
         .turn-card,
@@ -625,14 +690,22 @@
           display: flex;
           flex-direction: column;
           gap: 12px;
+          align-items: stretch;
         }
         .game-column {
           display: contents;
         }
         .board-panel {
           order: 2;
-          min-height: clamp(370px, 72svh, 640px);
+          min-height: 0;
+          height: clamp(235px, 34svh, 340px);
           flex: none;
+        }
+        .direction-card {
+          position: static;
+          order: 3;
+          width: 100%;
+          transform: none;
         }
         .side {
           display: contents;
@@ -641,16 +714,16 @@
           order: 1;
         }
         .score-card {
-          order: 3;
-        }
-        .play-card {
           order: 4;
         }
-        .notice {
+        .play-card {
           order: 5;
         }
-        .log-card {
+        .notice {
           order: 6;
+        }
+        .log-card {
+          order: 7;
           min-height: 0;
         }
         .score-card {
@@ -709,19 +782,26 @@
           justify-content: flex-start;
         }
         .board-panel {
-          min-height: 450px;
+          height: clamp(235px, 34svh, 340px);
         }
+        .board-2d { padding: 42px 5px 64px; }
+        .board-2d-grid { border-width: 3px; border-radius: 14px; padding: 6px; }
+        .pit-2d { border-width: 1px; }
         .camera-hint {
           font-size: 10px;
-        }
-        .direction-card {
-          bottom: 11px;
         }
         .score-name {
           font-size: 12px;
         }
         .score-sub {
           font-size: 10px;
+        }
+      }
+      @media (min-width: 761px) and (max-height: 560px) {
+        .direction-card {
+          position: static;
+          width: 100%;
+          transform: none;
         }
       }
       @media (prefers-reduced-motion: reduce) {
@@ -746,6 +826,10 @@
           </div>
         </div>
         <nav class="top-actions" aria-label="Game controls">
+          <div class="view-toggle" role="group" aria-label="Board view">
+            <button class="btn" id="view2dBtn" type="button" aria-pressed="false">2D</button>
+            <button class="btn active" id="view3dBtn" type="button" aria-pressed="true">3D</button>
+          </div>
           <button class="btn" id="rulesBtn" type="button">Rule guide</button>
           <button class="btn" id="restartBtn" type="button">
             Restart game
@@ -768,19 +852,11 @@
               id="boardOverlay"
               aria-hidden="true"
             ></div>
-            <div class="board-corner"><i></i> 3D board</div>
-            <div class="camera-hint">
-              Drag to rotate · Scroll or pinch to zoom
+            <div class="board-2d" id="board2d" hidden role="group" aria-label="2D game board">
+              <div class="board-2d-grid" id="board2dGrid"></div>
             </div>
-            <div class="direction-card" id="directionCard" hidden>
-              <p id="directionTitle">Choose a direction</p>
-              <div class="direction-actions">
-                <button type="button" id="clockwiseBtn">↻ Clockwise</button
-                ><button type="button" id="counterBtn">
-                  ↺ Counter-clockwise
-                </button>
-              </div>
-            </div>
+            <div class="board-corner"><i></i> <span id="boardViewLabel">3D board</span></div>
+            <div class="camera-hint" id="cameraHint">View follows the current player</div>
             <div class="error" id="errorView">
               <div>
                 <h2>3D board could not load</h2>
@@ -791,6 +867,13 @@
               </div>
             </div>
           </section>
+          <div class="direction-card" id="directionCard" hidden>
+            <p id="directionTitle">Choose a direction</p>
+            <div class="direction-actions">
+              <button type="button" id="clockwiseBtn">↻ Clockwise</button
+              ><button type="button" id="counterBtn">↺ Counter-clockwise</button>
+            </div>
+          </div>
           <div class="notice" role="status" aria-live="polite">
             <div class="notice-icon" aria-hidden="true">✦</div>
             <div>
@@ -889,9 +972,9 @@
           </li>
         </ol>
         <div class="modal-note">
-          Hand the device to the other player when the turn changes. Use the
-          five numbered pit buttons if the 3D pits are
-          difficult to tap.
+          The board turns to face the current player. Switch between 2D and 3D
+          at any time without resetting the game. Use the five numbered pit
+          buttons if a pit is difficult to tap.
         </div>
       </div>
     </dialog>
@@ -910,7 +993,6 @@
     </script>
     <script type="module">
       import * as THREE from "three";
-      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
       const $ = (id) => document.getElementById(id);
       const el = Object.fromEntries(
@@ -918,6 +1000,12 @@
           "scene",
           "boardPanel",
           "boardOverlay",
+          "board2d",
+          "board2dGrid",
+          "boardViewLabel",
+          "cameraHint",
+          "view2dBtn",
+          "view3dBtn",
           "directionCard",
           "directionTitle",
           "clockwiseBtn",
@@ -962,6 +1050,7 @@
         scores: [0, 0],
         debt: [0, 0],
         turn: 0,
+        view: "3d",
         busy: false,
         over: false,
         selected: null,
@@ -970,8 +1059,8 @@
       };
       const scene = new THREE.Scene();
       scene.background = new THREE.Color("#233840");
-      scene.fog = new THREE.Fog("#233840", 21, 44);
-      const camera = new THREE.PerspectiveCamera(43, 1, 0.1, 100);
+      scene.fog = new THREE.Fog("#233840", 30, 100);
+      const camera = new THREE.PerspectiveCamera(43, 1, 0.1, 200);
       const renderer = new THREE.WebGLRenderer({
         canvas: el.scene,
         antialias: true,
@@ -984,15 +1073,6 @@
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.37;
-      const controls = new OrbitControls(camera, el.scene);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.075;
-      controls.enablePan = false;
-      controls.minDistance = 10;
-      controls.maxDistance = 29;
-      controls.minPolarAngle = 0.22;
-      controls.maxPolarAngle = 1.33;
-      controls.target.set(0, 0, 0);
       scene.add(new THREE.HemisphereLight(0xfff3df, 0x405963, 2.2));
       const key = new THREE.DirectionalLight(0xffe3b7, 3.1);
       key.position.set(-6, 12, 8);
@@ -1052,6 +1132,7 @@
         small: [],
         quan: [],
       }));
+      const pit2dButtons = [];
       const allStones = new Set();
       const pitTargets = [],
         rimMeshes = [],
@@ -1230,6 +1311,20 @@
         }
       }
       buildBoard();
+      function build2DBoard() {
+        for (let i = 0; i < 12; i++) {
+          const button = document.createElement("button");
+          const label = document.createElement("small");
+          const count = document.createElement("strong");
+          button.type = "button";
+          button.className = "pit-2d";
+          button.append(label, count);
+          button.addEventListener("click", () => selectPit(i));
+          el.board2dGrid.appendChild(button);
+          pit2dButtons[i] = { button, label, count };
+        }
+      }
+      build2DBoard();
 
       function next(i, d) {
         return (i + d + 12) % 12;
@@ -1314,6 +1409,57 @@
           countNodes[i].textContent = total(game.pits[i]);
           countNodes[i].style.display = total(game.pits[i]) ? "grid" : "none";
         }
+        render2D();
+      }
+      function render2D() {
+        if (!game.pits.length) return;
+        const near = sideOf(game.turn);
+        const far = [...sideOf(1 - game.turn)].reverse();
+        for (const [row, indices] of [[1, far], [2, near]]) {
+          indices.forEach((i, column) => {
+            const { button } = pit2dButtons[i];
+            button.style.gridRow = String(row);
+            button.style.gridColumn = String(column + 2);
+          });
+        }
+        for (const [i, column] of [[game.turn === 0 ? 11 : 5, 1], [game.turn === 0 ? 5 : 11, 7]]) {
+          const { button } = pit2dButtons[i];
+          button.style.gridRow = "1 / span 2";
+          button.style.gridColumn = String(column);
+        }
+        for (let i = 0; i < 12; i++) {
+          const { button, label, count } = pit2dButtons[i];
+          const quan = isQuan(i);
+          const player = P1.includes(i) ? 0 : 1;
+          const number = sideOf(player).indexOf(i) + 1;
+          const eligible = !quan && !game.busy && !game.over && near.includes(i) && game.pits[i].small > 0;
+          button.classList.toggle("quan", quan);
+          button.classList.toggle("available", eligible);
+          button.classList.toggle("selected", game.selected === i);
+          button.disabled = !eligible;
+          button.setAttribute("aria-pressed", String(game.selected === i));
+          button.setAttribute("aria-label", quan
+            ? `Quan pit, ${game.pits[i].small} pebbles and ${game.pits[i].quan} Quan stone`
+            : `${displayName(player)} pit ${number}, ${game.pits[i].small} pebbles`);
+          label.textContent = quan ? "QUAN" : `P${player + 1} · ${number}`;
+          count.textContent = String(total(game.pits[i]));
+        }
+      }
+      function setView(view) {
+        game.view = view;
+        const is3d = view === "3d";
+        el.scene.hidden = !is3d;
+        el.boardOverlay.hidden = !is3d;
+        el.board2d.hidden = is3d;
+        el.cameraHint.hidden = !is3d;
+        el.boardViewLabel.textContent = is3d ? "3D board" : "2D board";
+        el.boardPanel.setAttribute("aria-label", `Interactive ${view.toUpperCase()} Ô Ăn Quan board`);
+        for (const [button, active] of [[el.view2dBtn, !is3d], [el.view3dBtn, is3d]]) {
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", String(active));
+        }
+        render2D();
+        resize();
       }
       function displayName(p) {
         return p === 0 ? "Player 1" : "Player 2";
@@ -1373,6 +1519,8 @@
           rimMeshes[i].material = eligible ? highlightMat : rimMat;
           rimMeshes[i].scale.setScalar(game.selected === i ? 1.035 : 1);
         }
+        render2D();
+        frameCamera();
       }
       const highlightMat = new THREE.MeshStandardMaterial({
         color: 0xb98b5c,
@@ -1560,7 +1708,7 @@
         renderUI();
       }
       function replenish(p) {
-        if (sideOf(p).some((i) => game.pits[i].small > 0)) return true;
+        if (sideOf(p).some((i) => game.pits[i].small > 0)) return null;
         const own = Math.min(5, Math.max(0, game.scores[p]));
         const borrowed = 5 - own;
         game.scores[p] -= own;
@@ -1579,7 +1727,7 @@
             ? `${borrowed} point${borrowed === 1 ? " was" : "s were"} borrowed and will be repaid at the end.`
             : "Five captured points returned to the board.",
         );
-        return true;
+        return { borrowed };
       }
       async function play(d) {
         if (game.selected === null || game.busy || game.over) return;
@@ -1597,12 +1745,14 @@
           return;
         }
         game.turn = 1 - game.turn;
-        replenish(game.turn);
+        const refill = replenish(game.turn);
         log(`${displayName(game.turn)}'s turn.`);
         renderUI();
         say(
           `${displayName(game.turn)}'s turn`,
-          "Choose one of your five pits, then choose a direction.",
+          refill
+            ? `Your empty side was refilled with one stone per pit${refill.borrowed ? `; ${refill.borrowed} point${refill.borrowed === 1 ? " was" : "s were"} borrowed` : ""}. Choose a pit.`
+            : "Choose one of your five pits, then choose a direction.",
         );
       }
       function restart() {
@@ -1665,6 +1815,8 @@
       el.clockwiseBtn.addEventListener("click", () => play(1));
       el.counterBtn.addEventListener("click", () => play(-1));
       el.restartBtn.addEventListener("click", restart);
+      el.view2dBtn.addEventListener("click", () => setView("2d"));
+      el.view3dBtn.addEventListener("click", () => setView("3d"));
       el.rulesBtn.addEventListener("click", () => el.rulesDialog.showModal());
       el.closeRules.addEventListener("click", () => el.rulesDialog.close());
       document.addEventListener("keydown", (e) => {
@@ -1682,23 +1834,47 @@
           play(e.key === "ArrowRight" ? 1 : -1);
         }
       });
+      const frameCorners = [-7.9, 7.9].flatMap((x) =>
+        [-3.05, 3.05].flatMap((z) =>
+          [-0.7, 1.0].map((y) => new THREE.Vector3(x, y, z)),
+        ),
+      );
+      function frameCamera() {
+        if (!Number.isFinite(camera.aspect) || camera.aspect <= 0) return;
+        const direction = new THREE.Vector3(0, 0.9, game.turn === 0 ? 1 : -1).normalize();
+        camera.up.set(0, 1, 0);
+        let near = 5;
+        let far = 100;
+        for (let step = 0; step < 20; step++) {
+          const distance = (near + far) / 2;
+          camera.position.copy(direction).multiplyScalar(distance);
+          camera.lookAt(0, 0, 0);
+          camera.updateMatrixWorld();
+          const fits = frameCorners.every((corner) => {
+            const point = corner.clone().project(camera);
+            return Math.abs(point.x) <= 0.86 && Math.abs(point.y) <= 0.86;
+          });
+          if (fits) far = distance;
+          else near = distance;
+        }
+        camera.position.copy(direction).multiplyScalar(far);
+        camera.lookAt(0, 0, 0);
+        camera.updateMatrixWorld();
+      }
       function resize() {
         const width = el.boardPanel.clientWidth,
           height = el.boardPanel.clientHeight;
+        if (!width || !height) return;
         renderer.setSize(width, height, false);
         camera.aspect = width / height;
-        const portrait = width < 650 && height > width * 0.85;
-        board.rotation.y = portrait ? Math.PI / 2 : 0;
-        camera.fov = portrait ? 48 : 43;
-        camera.position.set(0, portrait ? 14 : 9.5, portrait ? 13.5 : 13.4);
         camera.updateProjectionMatrix();
-        controls.update();
+        frameCamera();
       }
       new ResizeObserver(resize).observe(el.boardPanel);
       resize();
       function animate() {
         requestAnimationFrame(animate);
-        controls.update();
+        if (game.view !== "3d") return;
         renderer.render(scene, camera);
         const rect = el.scene.getBoundingClientRect();
         for (let i = 0; i < 12; i++) {
@@ -1711,6 +1887,7 @@
       }
       animate();
       restart();
+      setView("3d");
       window.__gameReady = true;
       el.errorView.classList.remove("show");
     </script>
